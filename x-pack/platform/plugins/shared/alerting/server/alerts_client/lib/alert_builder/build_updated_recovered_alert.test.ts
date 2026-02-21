@@ -31,6 +31,7 @@ import {
   ALERT_PREVIOUS_ACTION_GROUP,
   ALERT_RULE_EXECUTION_UUID,
 } from '@kbn/rule-data-utils';
+import type { Alert } from '@kbn/alerts-as-data-utils';
 import {
   alertRule,
   existingFlattenedRecoveredAlert,
@@ -216,4 +217,8 @@ describe('buildUpdatedRecoveredAlert', () => {
       [TAGS]: ['rule-', '-tags'],
     });
   });
+
+  // Snooze config now lives on the rule SO, not on alert docs.
+  // The scheduler handles TTL/condition evaluation; the builder no longer
+  // clears snooze fields during recovery.
 });
