@@ -156,6 +156,27 @@ describe('unmuteInstance()', () => {
     );
   });
 
+  test('skips unmuting when alert instance not muted and not snoozed', async () => {
+    const rulesClient = new RulesClient(rulesClientParams);
+    unsecuredSavedObjectsClient.get.mockResolvedValueOnce({
+      id: '1',
+      type: RULE_SAVED_OBJECT_TYPE,
+      attributes: {
+        actions: [],
+        schedule: { interval: '10s' },
+        alertTypeId: '2',
+        enabled: true,
+        scheduledTaskId: 'task-123',
+        mutedInstanceIds: [],
+      },
+      references: [],
+    });
+
+    await rulesClient.unmuteInstance({ alertId: '1', alertInstanceId: '2' });
+    expect(alertsService.clearSnoozeAndUnmuteAlertInstances).not.toHaveBeenCalled();
+    expect(unsecuredSavedObjectsClient.update).not.toHaveBeenCalled();
+  });
+
   test('skips unmuting when alert is muted', async () => {
     const rulesClient = new RulesClient(rulesClientParams);
     unsecuredSavedObjectsClient.get.mockResolvedValueOnce({
@@ -333,6 +354,9 @@ describe('unmuteInstance()', () => {
           enabled: true,
           scheduledTaskId: 'task-123',
           mutedInstanceIds: [],
+          snoozedInstances: [
+            { instanceId: '2', expiresAt: new Date(Date.now() + 86400000).toISOString() },
+          ],
         },
         version: '123',
         references: [],
@@ -348,6 +372,21 @@ describe('unmuteInstance()', () => {
             saved_object: { id: '1', type: RULE_SAVED_OBJECT_TYPE, name: 'fake_rule_name' },
           },
         })
+      );
+      expect(alertsService.clearSnoozeAndUnmuteAlertInstances).toHaveBeenCalledWith({
+        ruleId: '1',
+        alertInstanceIds: ['2'],
+        indices: ['.alerts-default'],
+        logger: rulesClientParams.logger,
+      });
+      expect(unsecuredSavedObjectsClient.update).toHaveBeenCalledWith(
+        RULE_SAVED_OBJECT_TYPE,
+        '1',
+        expect.objectContaining({
+          snoozedInstances: [],
+          updatedAt: expect.any(String),
+        }),
+        { version: '123' }
       );
     });
 
