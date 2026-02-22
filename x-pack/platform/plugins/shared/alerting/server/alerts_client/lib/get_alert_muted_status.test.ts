@@ -33,6 +33,11 @@ describe('getAlertMutedStatus', () => {
     expect(getAlertMutedStatus('alert-1', ruleData)).toBe(false);
   });
 
+  test('should return false when alertInstanceId is not in mutedInstanceIds (other instances muted)', () => {
+    const ruleData = createMockRuleData({ mutedInstanceIds: ['alert-2', 'alert-3'] });
+    expect(getAlertMutedStatus('alert-1', ruleData)).toBe(false);
+  });
+
   test('should return true when muteAll is true', () => {
     const ruleData = createMockRuleData({ muteAll: true });
     expect(getAlertMutedStatus('alert-1', ruleData)).toBe(true);
@@ -79,6 +84,14 @@ describe('getAlertMutedStatus', () => {
     const ruleData = createMockRuleData({
       muteAll: true,
       mutedInstanceIds: ['alert-1'],
+    });
+    expect(getAlertMutedStatus('alert-1', ruleData)).toBe(true);
+  });
+
+  test('should return true when muteAll is true even if alertInstanceId is not in mutedInstanceIds', () => {
+    const ruleData = createMockRuleData({
+      muteAll: true,
+      mutedInstanceIds: ['alert-2'],
     });
     expect(getAlertMutedStatus('alert-1', ruleData)).toBe(true);
   });
