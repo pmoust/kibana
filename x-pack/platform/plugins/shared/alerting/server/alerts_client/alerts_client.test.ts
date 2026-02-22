@@ -23,6 +23,13 @@ import {
   ALERT_MAINTENANCE_WINDOW_IDS,
   ALERT_MAINTENANCE_WINDOW_NAMES,
   ALERT_MUTED,
+  ALERT_SCHEDULED_ACTION_GROUP,
+  ALERT_SCHEDULED_ACTION_DATE,
+  ALERT_SCHEDULED_ACTION_THROTTLING,
+  ALERT_SNOOZE_CONDITION_OPERATOR,
+  ALERT_SNOOZE_CONDITIONS,
+  ALERT_SNOOZE_EXPIRES_AT,
+  ALERT_SNOOZE_SNAPSHOT,
   ALERT_PENDING_RECOVERED_COUNT,
   ALERT_PREVIOUS_ACTION_GROUP,
   ALERT_RULE_CATEGORY,
@@ -86,6 +93,29 @@ import type { KibanaRequest } from '@kbn/core/server';
 import { rule } from './lib/test_fixtures';
 import { RUNTIME_MAINTENANCE_WINDOW_ID_FIELD } from './lib/get_summarized_alerts_query';
 import { DEFAULT_MAX_ALERTS } from '../config';
+
+/** Expected Painless script for updatePersistedAlerts (must match alerts_client.ts). */
+function getExpectedUpdatePersistedAlertsScriptSource(): string {
+  return `
+                if (params.toScheduledAction.containsKey(ctx._source['${ALERT_UUID}'])) {
+                  ctx._source['${ALERT_SCHEDULED_ACTION_GROUP}'] = params.toScheduledAction[ctx._source['${ALERT_UUID}']].group;
+                  ctx._source['${ALERT_SCHEDULED_ACTION_DATE}'] = params.toScheduledAction[ctx._source['${ALERT_UUID}']].date;
+                  if (params.toScheduledAction[ctx._source['${ALERT_UUID}']].containsKey('throttling')) {
+                    ctx._source['${ALERT_SCHEDULED_ACTION_THROTTLING}'] = params.toScheduledAction[ctx._source['${ALERT_UUID}']].throttling;
+                  }
+                }
+                if (params.toMaintenanceWindows.containsKey(ctx._source['${ALERT_UUID}'])) {
+                  ctx._source['${ALERT_MAINTENANCE_WINDOW_IDS}'] = params.toMaintenanceWindows[ctx._source['${ALERT_UUID}']];
+                }
+                if (ctx._source['${ALERT_UUID}'] != null && params.toAutoUnmute.contains(ctx._source['${ALERT_UUID}'])) {
+                  ctx._source['${ALERT_MUTED}'] = false;
+                  ctx._source.remove('${ALERT_SNOOZE_EXPIRES_AT}');
+                  ctx._source.remove('${ALERT_SNOOZE_CONDITIONS}');
+                  ctx._source.remove('${ALERT_SNOOZE_CONDITION_OPERATOR}');
+                  ctx._source.remove('${ALERT_SNOOZE_SNAPSHOT}');
+                }
+              `;
+}
 
 const date = '2023-03-28T22:27:28.159Z';
 const startedAtDate = '2023-03-28T13:00:00.000Z';
@@ -1980,7 +2010,7 @@ describe('Alerts Client', () => {
                   },
                 },
               },
-              source: expect.anything(),
+              source: getExpectedUpdatePersistedAlertsScriptSource(),
             },
           });
         });
@@ -2047,7 +2077,7 @@ describe('Alerts Client', () => {
           });
 
           expect(params.script).toEqual({
-            source: expect.anything(),
+            source: getExpectedUpdatePersistedAlertsScriptSource(),
             lang: 'painless',
             params: {
               toAutoUnmute: [],
