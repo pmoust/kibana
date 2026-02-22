@@ -105,4 +105,63 @@ describe('getAlertMutedStatus', () => {
     });
     expect(getAlertMutedStatus('alert-1', ruleData)).toBe(true);
   });
+
+  describe('micro-benchmarks', () => {
+    const runTimingLoop = (fn: () => void, runs: number): { totalMs: number; meanMs: number } => {
+      const start = performance.now();
+      for (let i = 0; i < runs; i++) {
+        fn();
+      }
+      const totalMs = performance.now() - start;
+      return { totalMs, meanMs: totalMs / runs };
+    };
+
+    test('getAlertMutedStatus with 0 entries (baseline)', () => {
+      const ruleData = createMockRuleData();
+      const runs = 1000;
+      const { meanMs } = runTimingLoop(() => {
+        getAlertMutedStatus('alert-1', ruleData);
+      }, runs);
+      expect(meanMs).toBeLessThan(0.5);
+    });
+
+    test('getAlertMutedStatus with 10 mutedInstanceIds', () => {
+      const ruleData = createMockRuleData({
+        mutedInstanceIds: Array.from({ length: 10 }, (_, i) => `alert-${i}`),
+      });
+      const runs = 1000;
+      const { meanMs } = runTimingLoop(() => {
+        getAlertMutedStatus('alert-5', ruleData);
+      }, runs);
+      expect(meanMs).toBeLessThan(0.5);
+    });
+
+    test('getAlertMutedStatus with 100 snoozedInstances', () => {
+      const ruleData = createMockRuleData({
+        snoozedInstances: Array.from({ length: 100 }, (_, i) => ({
+          instanceId: `alert-${i}`,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })),
+      });
+      const runs = 500;
+      const { meanMs } = runTimingLoop(() => {
+        getAlertMutedStatus('alert-50', ruleData);
+      }, runs);
+      expect(meanMs).toBeLessThan(1);
+    });
+
+    test('getAlertMutedStatus with 1000 snoozedInstances (regression guard)', () => {
+      const ruleData = createMockRuleData({
+        snoozedInstances: Array.from({ length: 1000 }, (_, i) => ({
+          instanceId: `alert-${i}`,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })),
+      });
+      const runs = 100;
+      const { meanMs } = runTimingLoop(() => {
+        getAlertMutedStatus('alert-500', ruleData);
+      }, runs);
+      expect(meanMs).toBeLessThan(5);
+    });
+  });
 });
