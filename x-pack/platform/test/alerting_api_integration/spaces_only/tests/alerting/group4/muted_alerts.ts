@@ -474,7 +474,6 @@ export default function createDisableRuleTests({ getService }: FtrProviderContex
       });
     });
 
-    // TODO: snoozedInstances with any key triggers [snoozedInstances]: expected
     it('should keep alert snoozed across recovery and re-fire via rule SO', async () => {
       const patternAadIndex = '.internal.alerts-test.patternfiring.alerts-default-*';
 

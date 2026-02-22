@@ -227,6 +227,14 @@ export interface Artifacts {
   };
 }
 
+/** Per-alert snooze condition (e.g. severity_equals, field_change) */
+export interface SnoozeCondition {
+  type: string;
+  field: string;
+  value?: string;
+  snapshotValue?: string;
+}
+
 export interface Rule<Params extends RuleTypeParams = never> {
   id: string;
   enabled: boolean;

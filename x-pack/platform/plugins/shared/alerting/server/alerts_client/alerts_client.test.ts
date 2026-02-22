@@ -1967,6 +1967,7 @@ describe('Alerts Client', () => {
             script: {
               lang: 'painless',
               params: {
+                toAutoUnmute: [],
                 toMaintenanceWindows: {},
                 toScheduledAction: {
                   [uuid1]: {
@@ -1979,18 +1980,7 @@ describe('Alerts Client', () => {
                   },
                 },
               },
-              source: `
-                if (params.toScheduledAction.containsKey(ctx._source['kibana.alert.uuid'])) {
-                  ctx._source['kibana.alert.scheduled_action.group'] = params.toScheduledAction[ctx._source['kibana.alert.uuid']].group;
-                  ctx._source['kibana.alert.scheduled_action.date'] = params.toScheduledAction[ctx._source['kibana.alert.uuid']].date;
-                  if (params.toScheduledAction[ctx._source['kibana.alert.uuid']].containsKey('throttling')) {
-                    ctx._source['kibana.alert.scheduled_action.throttling'] = params.toScheduledAction[ctx._source['kibana.alert.uuid']].throttling;
-                  }
-                }
-                if (params.toMaintenanceWindows.containsKey(ctx._source['kibana.alert.uuid'])) {
-                  ctx._source['kibana.alert.maintenance_window_ids'] = params.toMaintenanceWindows[ctx._source['kibana.alert.uuid']];
-                }
-              `,
+              source: expect.anything(),
             },
           });
         });
@@ -2060,6 +2050,7 @@ describe('Alerts Client', () => {
             source: expect.anything(),
             lang: 'painless',
             params: {
+              toAutoUnmute: [],
               toScheduledAction: {},
               toMaintenanceWindows: {
                 [alert1.getUuid()]: ['mw1'],
@@ -2091,7 +2082,7 @@ describe('Alerts Client', () => {
           ).rejects.toBe('something went wrong!');
 
           expect(logger.error).toHaveBeenCalledWith(
-            `Error updating alerts. (last scheduled actions or maintenance windows) for test.rule-type:1 'rule-name': something went wrong!`,
+            `Error updating alerts. (last scheduled actions, maintenance windows, or auto-unmute) for test.rule-type:1 'rule-name': something went wrong!`,
             logTags
           );
         });

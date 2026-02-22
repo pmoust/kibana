@@ -607,7 +607,7 @@ export class AlertsClient<
                 if (params.toMaintenanceWindows.containsKey(ctx._source['${ALERT_UUID}'])) {
                   ctx._source['${ALERT_MAINTENANCE_WINDOW_IDS}'] = params.toMaintenanceWindows[ctx._source['${ALERT_UUID}']];
                 }
-                if (params.toAutoUnmute.contains(ctx._source['${ALERT_UUID}'])) {
+                if (ctx._source['${ALERT_UUID}'] != null && params.toAutoUnmute.contains(ctx._source['${ALERT_UUID}'])) {
                   ctx._source['${ALERT_MUTED}'] = false;
                   ctx._source.remove('${ALERT_SNOOZE_EXPIRES_AT}');
                   ctx._source.remove('${ALERT_SNOOZE_CONDITIONS}');
